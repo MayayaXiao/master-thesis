@@ -1,0 +1,73 @@
+#Einige Variablen setzen (einmal mit, einmal ohne Magie)
+
+## Das Hauptdokument (Erkennung mittels \begin{document})
+#DOKUMENT=thesis
+DOKUMENT=$(shell egrep -l '^[^%]*\\begin\{document\}' *.tex|sed s/.tex//)
+
+## Die übrigen Sourcen (werden vom Hauptdokument eingebunden) (Magie funktioniert noch nicht)
+#SOURCES=$(shell grep -E '^[^%]*\\include\{|^[^%]*\\input\{' $(DOKUMENT).tex |cut -d{ -f2|cut -d} -f1)
+CHAPTERDIR=chapters
+APPENDICESDIR=appendices
+SOURCES= thesis.tex template/config.tex template/includes.tex chapters.tex appendices.tex
+SOURCES+=$(wildcard $(CHAPTERDIR)/*.tex)
+SOURCES+=$(wildcard $(APPENDICESDIR)/*.tex)
+
+XDVI=xdvi
+GV=gv
+XPDF=xpdf
+
+.PHONY: default dvi all ps pdf pspdf clean realclean
+
+# configure default make target
+default: pdf
+
+help :
+	@echo "Makefile for generating thesis by using 'lualatex'"
+	@echo "available make targets:"
+	@echo "  pdf       - use lualatex (pictures must be pdf or jpeg)"
+	@echo "  dvi       - use latex (pictures must be eps)"
+	@echo "  ps        - dvi -> ps"
+	@echo "  pspdf     - dvi -> ps -> pdf"
+	@echo "  showdvi   - dvi -> $(XDVI)  (configure variable XDVI)"
+	@echo "  showps    - dvi -> $(GV)    (configure variable GV)"
+	@echo "  showpdf   - pdf -> $(XPDF)  (configure variable XPDF)"
+	@echo "  clean     - remove all generated files (except pdf, dvi, ps)"
+	@echo "  realclean - remove all generated files"
+
+dvi $(DOKUMENT).dvi: $(SOURCES)
+	latex $(DOKUMENT)
+	makeindex $(DOKUMENT)
+	bibtex $(DOKUMENT)
+	latex $(DOKUMENT)
+	latex $(DOKUMENT)
+
+all: $(DOKUMENT).dvi
+	dvips -Pcmz -o $(DOKUMENT).ps $(DOKUMENT).dvi
+	lualatex -shell-escape $(DOKUMENT)
+
+ps $(DOKUMENT).ps: $(DOKUMENT).dvi
+	dvips -Pcmz -o $(DOKUMENT).ps $(DOKUMENT).dvi
+
+pdf $(DOKUMENT).pdf: $(SOURCES)
+	lualatex -shell-escape $(DOKUMENT)
+	makeindex $(DOKUMENT)
+	bibtex $(DOKUMENT)
+	lualatex -shell-escape $(DOKUMENT)
+	lualatex -shell-escape $(DOKUMENT)
+
+pspdf: $(DOKUMENT).ps
+	ps2pdf $(DOKUMENT).ps
+
+showdvi: $(DOKUMENT).dvi
+	$(XDVI) $(DOKUMENT).dvi
+
+showps: $(DOKUMENT).ps
+	$(GV) $(DOKUMENT).ps
+
+showpdf: $(DOKUMENT).pdf
+	$(XPDF) $(DOKUMENT).pdf
+
+clean:
+	rm -rf $(APPENDICESDIR)/*.aux $(CHAPTERDIR)/*.aux *.aux *.dvi *.idx *.ilg *.ind *.out *.toc *.log *.bbl *.blg *~ *.lof *.lot *.fls thesis-blx.bib *.xml
+realclean: clean
+	rm -rf *.ps *.pdf
