@@ -1,0 +1,33 @@
+MAINTEX 	:= thesis.tex
+
+LATEX 		:= lualatex
+FLAGS 		:= -quiet -shell-escape
+
+.PHONY : default help pdf verbose clean veryclean 
+
+default : 
+	latexmk -$(LATEX) $(FLAGS) $(MAINTEX)
+
+help :
+	@echo ""
+	@echo "This Makefile creates the PDF of the thesis by using 'latexmk'"
+	@echo "  make             : Generate PDF of the thesis"
+	@echo "  make pdf         : Generate PDF of the thesis (forced mode)"
+	@echo "  make verbose     : Show output from latex compiler"
+	@echo "  make clean       : Delete temporary files"
+	@echo "  make veryclean   : Delete temporary files including PDF"
+	@echo ""
+
+
+pdf : 
+	latexmk -g -$(LATEX) $(FLAGS) $(MAINTEX)
+
+verbose :
+	latexmk -g -$(LATEX) $(FLAGS) -verbose $(MAINTEX)
+
+clean :
+	latexmk -c
+	rm -f *.lol chapters/*.aux *.fls thesis-blx.bib *.xml *.bbl
+
+veryclean : clean
+	latexmk -C
